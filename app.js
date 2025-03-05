@@ -48,32 +48,72 @@ function showGallery() {
     newWindow.document.write(galleryHtml);
     newWindow.document.close();
 }
+const canvas = document.getElementById('drawingCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let currentChallenge = '';
 
 const challenges = [
-    'Beer Goggles (Zoomed-in view)',
-    'Earthquake (Shaky canvas)',
-    'Magnified (Large pen size)',
-    'Inverted (Draws upside down)',
-    'Mirror (Mirrored drawing)',
-    'Invisible Pen (Drawing is not visible until saved)'
+    { name: 'Beer Goggles', effect: 'zoom' },
+    { name: 'Earthquake', effect: 'shake' },
+    { name: 'Magnified', effect: 'largePen' },
+    { name: 'Inverted', effect: 'inverted' },
+    { name: 'Mirror', effect: 'mirror' },
+    { name: 'Invisible Pen', effect: 'invisible' }
 ];
 
 function getRandomChallenge() {
     const randomIndex = Math.floor(Math.random() * challenges.length);
-    document.getElementById('challenge').textContent = challenges[randomIndex];
+    currentChallenge = challenges[randomIndex];
+    document.getElementById('challenge').textContent = currentChallenge.name;
+
+    // Apply canvas effect
+    canvas.className = currentChallenge.effect;
+}
+
+canvas.addEventListener('mousedown', () => { drawing = true; });
+canvas.addEventListener('mouseup', () => { drawing = false; ctx.beginPath(); });
+canvas.addEventListener('mousemove', draw);
+
+function draw(event) {
+    if (!drawing) return;
+
+    let brushColor = 'black';
+    let brushSize = 5;
+
+    if (currentChallenge.effect === 'invisible') brushColor = 'white';
+    if (currentChallenge.effect === 'largePen') brushSize = 20;
+
+    ctx.lineWidth = brushSize;
+    ctx.lineCap = 'round';
+    ctx.strokeStyle = brushColor;
+
+    let x = event.clientX - canvas.offsetLeft;
+    let y = event.clientY - canvas.offsetTop;
+
+    if (currentChallenge.effect === 'inverted') {
+        x = canvas.width - x;
+        y = canvas.height - y;
+    }
+
+    if (currentChallenge.effect === 'mirror') {
+        x = canvas.width - x;
+    }
+
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
 }
 
 function clearCanvas() {
-    const canvas = document.getElementById('drawingCanvas');
-    const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function saveDrawing() {
-    const canvas = document.getElementById('drawingCanvas');
     const dataUrl = canvas.toDataURL();
     let drawings = JSON.parse(localStorage.getItem('drawings') || '[]');
-    drawings.push({ image: dataUrl, challenge: document.getElementById('challenge').textContent });
+    drawings.push({ image: dataUrl, challenge: currentChallenge.name });
     localStorage.setItem('drawings', JSON.stringify(drawings));
     alert('Drawing saved!');
 }
@@ -89,3 +129,25 @@ function showGallery() {
     newWindow.document.write(galleryHtml);
     newWindow.document.close();
 }
+
+// Add styles for effects
+const style = document.createElement('style');
+style.innerHTML = `
+    .zoom { transform: scale(2); }
+    .shake { animation: shake 0.5s infinite; }
+    @keyframes shake {
+        0% { transform: translate(1px, 1px) rotate(0deg); }
+        10% { transform: translate(-1px, -2px) rotate(-1deg); }
+        20% { transform: translate(-3px, 0px) rotate(1deg); }
+        30% { transform: translate(3px, 2px) rotate(0deg); }
+        40% { transform: translate(1px, -1px) rotate(1deg); }
+        50% { transform: translate(-1px, 2px) rotate(-1deg); }
+        60% { transform: translate(-3px, 1px) rotate(0deg); }
+        70% { transform: translate(3px, 1px) rotate(-1deg); }
+        80% { transform: translate(-1px, -1px) rotate(1deg); }
+        90% { transform: translate(1px, 2px) rotate(0deg); }
+        100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+`;
+document.head.appendChild(style);
+
